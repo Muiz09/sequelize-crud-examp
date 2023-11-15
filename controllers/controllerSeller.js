@@ -2,7 +2,7 @@ const { Product, Seller, Category, Product_Supplier, Supplier } = require('../mo
 const Joi = require('joi');
 const { handleClientError, handleServerError } = require('../helpers/errorHandler')
 
-// ABOUT CATEGORY
+// ABOUT SELLER/STORE
 const readSeller = async (req, res) => { // GET Seller
   try {
     const data = await Seller.findAll({})
@@ -73,7 +73,7 @@ const addSeller = async (req, res) => { // ADD CATEGORY
 
     const createSupplier = await Supplier.create({ name: supplierName })
 
-    await Product_Supplier.create({ productId: createProduct.id , supplierId: createSupplier.id})
+    await Product_Supplier.create({ productId: createProduct.id, supplierId: createSupplier.id })
 
     res.status(201).json({
       data: { createSeller, createProduct },
@@ -122,10 +122,18 @@ const deleteSeller = async (req, res) => {
 
     if (!findSeller) return handleClientError(res, 404, 'Data Not Found');
 
-    const destroy = await Seller.destroy({
+    const productsToDelete = await Product.findAll({ where: { sellerId: id } });
+
+    const destroySeller = await Seller.destroy({
       where: { id },
     });
-    if (destroy) await Product.destroy({ where: { sellerId: id } })
+    if (destroySeller) {
+      await Product.destroy({ where: { sellerId: id } })
+    }
+
+    for (const product of productsToDelete) {
+      await Product_Supplier.destroy({ where: { productId: product.id } });
+    }
     res.status(200).json({
       status: `Store with id ${id} and his product has been deleted`,
     });
