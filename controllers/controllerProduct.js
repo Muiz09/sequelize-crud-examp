@@ -1,4 +1,4 @@
-const { Product, Seller, Category, Product_Supplier, Supplier } = require('../models/index');
+const { Product, Category, Product_Supplier, Supplier } = require('../models/index');
 const Joi = require('joi');
 const { handleClientError, handleServerError } = require('../helpers/errorHandler')
 
@@ -54,7 +54,8 @@ const productDetail = async (req, res) => { // DETAIL PRODUCT
   } catch (err) {
     console.log(err)
 
-return handleServerError(res);  }
+    return handleServerError(res);
+  }
 };
 
 
@@ -71,10 +72,13 @@ const addProduct = async (req, res) => { // ADD PRODUCT
     const { error, value } = productSchema.validate(req.body);
 
     if (error) return res.status(400).json({ error: error.details[0].message });
+
     const { name, description, price, image, categoryId, sellerId } = value;
+
     const sameData = await Product.findOne({ where: { name } });
 
     if (sameData) return handleClientError(res, 400, 'Gk boleh jual barang yg sama');
+    
     const create = await Product.create({ name, description, price, image, categoryId, sellerId });
 
     res.status(201).json({

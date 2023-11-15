@@ -1,4 +1,4 @@
-const { Product, Seller, Category, Product_Supplier, Supplier } = require('../models/index');
+const { Product, Category } = require('../models/index');
 const Joi = require('joi');
 const { handleClientError, handleServerError } = require('../helpers/errorHandler')
 
