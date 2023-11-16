@@ -68,31 +68,31 @@ const addProduct = async (req, res) => { // ADD PRODUCT
       image: Joi.string().uri(),
       categoryId: Joi.number().required(),
       sellerId: Joi.number().required(),
+      nameSupplier: Joi.string().required()
     });
-    const { error, value } = productSchema.validate(req.body);
 
+    const { error, value } = productSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const { name, description, price, image, categoryId, sellerId } = value;
+    const { name, description, price, image, categoryId, sellerId, nameSupplier } = value;
 
-    const sameData = await Product.findOne({ where: { name } });
+    const sameProduct = await Product.findOne({ where: { name } });
+    if (sameProduct) return handleClientError(res, 400, 'Gk boleh jual barang yg sama');
 
-    if (sameData) return handleClientError(res, 400, 'Gk boleh jual barang yg sama');
-    
-    const create = await Product.create({ name, description, price, image, categoryId, sellerId });
+    const checkSupplier = await Supplier.findOne({ where: { name: nameSupplier } })
+    if (!checkSupplier) return handleClientError(res, 404, 'Supplier Not Found');
+
+    const createProduct = await Product.create({ name, description, price, image, categoryId, sellerId });
+    const createConjuntion = await Product_Supplier.create({ productId: createProduct.id, supplierId: checkSupplier.id })
+
 
     res.status(201).json({
-      data: create,
+      data: { createProduct, createConjuntion },
       status: 'Success Add product',
     });
-
-    // const data = await Product.findAll({})
-    // res.status(201).json({
-    //   data: data,
-    //   status: 'Success Add product',
-    // });
   } catch (err) {
     console.error(err);
+    return handleServerError(res);
   }
 };
 
@@ -109,13 +109,15 @@ const editProduct = async (req, res) => { // EDIT PRODUCT
       categoryId: Joi.number().required(),
       sellerId: Joi.number().required(),
     });
+
     const { error, value } = productSchema.validate(req.body);
-
     if (error) return res.status(400).json({ error: error.details[0].message });
-    const { name, description, price, image, categoryId, sellerId } = value;
-    const sameData = await Product.findOne({ where: { name } });
 
+    const { name, description, price, image, categoryId, sellerId } = value;
+
+    const sameData = await Product.findOne({ where: { name } });
     if (sameData) return handleClientError(res, 400, 'DIBILANG GK BOLEH JUAL BARANG YG SAMA');
+
     const data = await Product.update({ name, description, price, image, categoryId, sellerId }, {
       where: { id: id },
       returning: true
@@ -133,12 +135,17 @@ const editProduct = async (req, res) => { // EDIT PRODUCT
 const deleteProduct = async (req, res) => { // DELETE PRODUCT
   try {
     const { id } = req.params
-    const findProduct = await Product.findByPk(id);
 
+    const findProduct = await Product.findByPk(id);
     if (!findProduct) return handleClientError(res, 404, 'Data Not Found');
+
     await Product.destroy({
       where: { id },
     });
+
+    await Product_Supplier.destroy({
+      where: { productId: id },
+    })
     res.status(200).json({
       message: `Product with id ${id} has been deleted`,
     });

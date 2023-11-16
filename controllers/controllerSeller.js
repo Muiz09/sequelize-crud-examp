@@ -54,25 +54,20 @@ const addSeller = async (req, res) => { // ADD CATEGORY
     const { error, value } = sellerSchema.validate(req.body);
 
     if (error) return handleClientError(res, 400, error.details[0].message);
-
     const { shop, name, description, price, image, categoryId, supplierName } = value || {};
 
     const sameSeller = await Seller.findOne({ where: { shop } });
-
     if (sameSeller) return handleClientError(res, 400, 'Seller with the same name already exists.');
 
-    const sameData = await Product.findOne({ where: { name } });
-
-    if (sameData) return handleClientError(res, 400, 'Gk boleh jual barang yg sama');
-
-    const createSeller = await Seller.create({ shop });
-    const createProduct = await Product.create({ name, description, price, image, categoryId, sellerId: createSeller.id });
+    const sameProduct = await Product.findOne({ where: { name } });
+    if (sameProduct) return handleClientError(res, 400, 'Gk boleh jual barang yg sama');
 
     const sameSupplier = await Supplier.findOne({ where: { name: supplierName } });
     if (sameSupplier) return handleClientError(res, 400, 'Supp LIER with the same name already exists.');
 
+    const createSeller = await Seller.create({ shop });
+    const createProduct = await Product.create({ name, description, price, image, categoryId, sellerId: createSeller.id });
     const createSupplier = await Supplier.create({ name: supplierName })
-
     await Product_Supplier.create({ productId: createProduct.id, supplierId: createSupplier.id })
 
     res.status(201).json({
@@ -93,12 +88,13 @@ const editSeller = async (req, res) => {
     });
 
     const { error, value } = sellerSchema.validate(req.body);
-
     if (error) return handleClientError(res, 400, error.details[0].message);
-    const { shop } = value;
-    const sameData = await Seller.findOne({ where: { shop } });
 
+    const { shop } = value;
+
+    const sameData = await Seller.findOne({ where: { shop } });
     if (sameData) return handleClientError(res, 400, 'Store with the same name already exists.');
+
     await Seller.update({ shop }, {
       where: { id: id },
       returning: true
@@ -118,18 +114,16 @@ const editSeller = async (req, res) => {
 const deleteSeller = async (req, res) => {
   try {
     const { id } = req.params
-    const findSeller = await Seller.findByPk(id);
 
+    const findSeller = await Seller.findByPk(id);
     if (!findSeller) return handleClientError(res, 404, 'Data Not Found');
 
     const productsToDelete = await Product.findAll({ where: { sellerId: id } });
-
     const destroySeller = await Seller.destroy({
       where: { id },
     });
-    if (destroySeller) {
-      await Product.destroy({ where: { sellerId: id } })
-    }
+    
+    if (destroySeller) await Product.destroy({ where: { sellerId: id } })
 
     for (const product of productsToDelete) {
       await Product_Supplier.destroy({ where: { productId: product.id } });

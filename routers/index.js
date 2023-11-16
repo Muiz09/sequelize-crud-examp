@@ -10,7 +10,7 @@ router.use('/', routerProduct)
 // CATREGORY
 router.use('/', routerCategory)
 
-// 
+// Seller
 router.use('/', routerSeller)
 
 module.exports = router
